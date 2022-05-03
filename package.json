@@ -11,8 +11,8 @@
     "deploy": "graph deploy mochiswapdev/mochiswap5 --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ --debug",
     "deploy-staging": "graph deploy $THE_GRAPH_GITHUB_USER/$THE_GRAPH_SUBGRAPH_NAME /PancakeSwap --ipfs https://api.staging.thegraph.com/ipfs/ --node https://api.staging.thegraph.com/deploy/",
     "watch-local": "graph deploy graphprotocol/PancakeSwap2 --watch --debug --node http://127.0.0.1:8020/ --ipfs http://localhost:5001",
-    "create-harmony": "graph create --node http://172.18.0.4:8020 harmony-swap/subgraph",
-    "deploy-harmony": "graph deploy --node http://172.18.0.4:8020 --ipfs http://localhost:5001 harmony-swap/subgraph subgraph.yaml --debug"
+    "create-harmony": "graph create --node http://172.21.0.4:8020 harmony-swap/subgraph",
+    "deploy-harmony": "graph deploy --node http://172.21.0.4:8020 --ipfs http://localhost:5001 harmony-swap/subgraph subgraph.yaml --debug"
   },
   "devDependencies": {
     "@graphprotocol/graph-cli": "^0.19.0",
