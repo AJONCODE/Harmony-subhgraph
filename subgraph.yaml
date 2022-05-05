@@ -59,7 +59,7 @@ templates:
           file: ./abis/pair.json
         - name: Factory
           file: ./abis/factory.json
-         - name: Exchange
+        - name: Exchange
           file: ./abis/exchange.json
       eventHandlers:
         - event: Mint(indexed address,uint256,uint256)
