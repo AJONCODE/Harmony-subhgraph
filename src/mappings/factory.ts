@@ -1,90 +1,115 @@
-import { BigDecimal, Address } from '@graphprotocol/graph-ts'
-import { NewExchange } from '../types/Factory/Factory'
-import { Uniswap, Exchange } from '../types/schema'
-import { Exchange as ExchangeContract } from '../types/templates'
-import { hardcodedExchanges } from './hardcodedExchanges'
-import { zeroBD, zeroBigInt, oneBigInt } from '../helpers'
+/* eslint-disable prefer-const */
+import { log } from '@graphprotocol/graph-ts'
+import { PairCreated } from '../types/Factory/Factory'
+import { Bundle, Pair, Token, UniswapFactory } from '../types/schema'
+import { Pair as PairTemplate } from '../types/templates'
+import {
+  FACTORY_ADDRESS,
+  fetchTokenDecimals,
+  fetchTokenName,
+  fetchTokenSymbol,
+  fetchTokenTotalSupply,
+  ZERO_BD,
+  ZERO_BI,
+} from './helpers'
 
-function hardcodeExchange(exchangeAddress: string, tokenAddress: Address, timestamp: i32): void {
-  const exchange = new Exchange(exchangeAddress) as Exchange
-  exchange.tokenAddress = tokenAddress
+export function handleNewPair(event: PairCreated): void {
+  // load factory (create if first exchange)
+  let factory = UniswapFactory.load(FACTORY_ADDRESS)
+  if (factory === null) {
+    factory = new UniswapFactory(FACTORY_ADDRESS)
+    factory.pairCount = 0
+    factory.totalVolumeETH = ZERO_BD
+    factory.totalLiquidityETH = ZERO_BD
+    factory.totalVolumeUSD = ZERO_BD
+    factory.untrackedVolumeUSD = ZERO_BD
+    factory.totalLiquidityUSD = ZERO_BD
+    factory.txCount = ZERO_BI
 
-  const tokenAddressStringed = tokenAddress.toHexString()
-
-  exchange.fee = BigDecimal.fromString('0.003')
-  exchange.version = 1
-  exchange.startTime = timestamp
-
-  exchange.ethLiquidity = zeroBD()
-  exchange.tokenLiquidity = zeroBD()
-  exchange.ethBalance = zeroBD()
-  exchange.tokenBalance = zeroBD()
-  exchange.combinedBalanceInEth = zeroBD()
-  exchange.combinedBalanceInUSD = zeroBD()
-  exchange.totalUniToken = zeroBD()
-
-  exchange.addLiquidityCount = zeroBigInt()
-  exchange.removeLiquidityCount = zeroBigInt()
-  exchange.sellTokenCount = zeroBigInt()
-  exchange.buyTokenCount = zeroBigInt()
-
-  exchange.lastPrice = zeroBD()
-  exchange.price = zeroBD()
-  exchange.tradeVolumeToken = zeroBD()
-  exchange.tradeVolumeEth = zeroBD()
-  exchange.tradeVolumeUSD = zeroBD()
-  exchange.totalValue = zeroBD()
-  exchange.weightedAvgPrice = zeroBD()
-  exchange.totalTxsCount = oneBigInt()
-
-  exchange.priceUSD = zeroBD()
-  exchange.lastPriceUSD = zeroBD()
-  exchange.weightedAvgPriceUSD = zeroBD()
-  exchange.tokenHolders = []
-
-  for (let i = 0; i < hardcodedExchanges.length; i++) {
-    if (tokenAddressStringed.toString() == hardcodedExchanges[i].tokenAddress.toString()) {
-      exchange.tokenSymbol = hardcodedExchanges[i].symbol
-      exchange.tokenName = hardcodedExchanges[i].name
-      exchange.tokenDecimals = hardcodedExchanges[i].tokenDecimals
-      break
-    } else {
-      exchange.tokenSymbol = 'unknown'
-      exchange.tokenName = 'unknown'
-      exchange.tokenDecimals = null
-    }
+    // create new bundle
+    let bundle = new Bundle('1')
+    bundle.ethPrice = ZERO_BD
+    bundle.save()
   }
-
-  // only save for tokens with non null decimals
-  if (exchange.tokenDecimals !== null) {
-    exchange.factory = '1'
-    exchange.save()
-  }
-}
-
-export function handleNewExchange(event: NewExchange): void {
-  let factory = Uniswap.load('1')
-
-  // if no factory yet, set up blank initial
-  if (factory == null) {
-    factory = new Uniswap('1')
-    factory.exchangeCount = 0
-    factory.totalVolumeInEth = zeroBD()
-    factory.totalLiquidityInEth = zeroBD()
-    factory.totalVolumeUSD = zeroBD()
-    factory.totalLiquidityUSD = zeroBD()
-    factory.totalTokenSells = zeroBigInt()
-    factory.totalTokenBuys = zeroBigInt()
-    factory.totalAddLiquidity = zeroBigInt()
-    factory.totalRemoveLiquidity = zeroBigInt()
-    factory.exchangeHistoryEntityCount = zeroBigInt()
-    factory.uniswapHistoryEntityCount = zeroBigInt()
-    factory.txCount = zeroBigInt()
-  }
-  factory.exchangeCount = factory.exchangeCount + 1
+  factory.pairCount = factory.pairCount + 1
   factory.save()
 
-  // create new exchange with data from our hard coded list
-  hardcodeExchange(event.params.exchange.toHexString(), event.params.token, event.block.timestamp.toI32()) // TODO - don't hard code, after we have the fix
-  ExchangeContract.create(event.params.exchange)
+  // create the tokens
+  let token0 = Token.load(event.params.token0.toHexString())
+  let token1 = Token.load(event.params.token1.toHexString())
+
+  // fetch info if null
+  if (token0 === null) {
+    token0 = new Token(event.params.token0.toHexString())
+    token0.symbol = fetchTokenSymbol(event.params.token0)
+    token0.name = fetchTokenName(event.params.token0)
+    token0.totalSupply = fetchTokenTotalSupply(event.params.token0)
+    let decimals = fetchTokenDecimals(event.params.token0)
+
+    // bail if we couldn't figure out the decimals
+    if (decimals === null) {
+      log.debug('mybug the decimal on token 0 was null', [])
+      return
+    }
+
+    token0.decimals = decimals
+    token0.derivedETH = ZERO_BD
+    token0.tradeVolume = ZERO_BD
+    token0.tradeVolumeUSD = ZERO_BD
+    token0.untrackedVolumeUSD = ZERO_BD
+    token0.totalLiquidity = ZERO_BD
+    // token0.allPairs = []
+    token0.txCount = ZERO_BI
+  }
+
+  // fetch info if null
+  if (token1 === null) {
+    token1 = new Token(event.params.token1.toHexString())
+    token1.symbol = fetchTokenSymbol(event.params.token1)
+    token1.name = fetchTokenName(event.params.token1)
+    token1.totalSupply = fetchTokenTotalSupply(event.params.token1)
+    let decimals = fetchTokenDecimals(event.params.token1)
+
+    // bail if we couldn't figure out the decimals
+    if (decimals === null) {
+      return
+    }
+    token1.decimals = decimals
+    token1.derivedETH = ZERO_BD
+    token1.tradeVolume = ZERO_BD
+    token1.tradeVolumeUSD = ZERO_BD
+    token1.untrackedVolumeUSD = ZERO_BD
+    token1.totalLiquidity = ZERO_BD
+    // token1.allPairs = []
+    token1.txCount = ZERO_BI
+  }
+
+  let pair = new Pair(event.params.pair.toHexString()) as Pair
+  pair.token0 = token0.id
+  pair.token1 = token1.id
+  pair.liquidityProviderCount = ZERO_BI
+  pair.createdAtTimestamp = event.block.timestamp
+  pair.createdAtBlockNumber = event.block.number
+  pair.txCount = ZERO_BI
+  pair.reserve0 = ZERO_BD
+  pair.reserve1 = ZERO_BD
+  pair.trackedReserveETH = ZERO_BD
+  pair.reserveETH = ZERO_BD
+  pair.reserveUSD = ZERO_BD
+  pair.totalSupply = ZERO_BD
+  pair.volumeToken0 = ZERO_BD
+  pair.volumeToken1 = ZERO_BD
+  pair.volumeUSD = ZERO_BD
+  pair.untrackedVolumeUSD = ZERO_BD
+  pair.token0Price = ZERO_BD
+  pair.token1Price = ZERO_BD
+
+  // create the tracked contract based on the template
+  PairTemplate.create(event.params.pair)
+
+  // save updated values
+  token0.save()
+  token1.save()
+  pair.save()
+  factory.save()
 }
