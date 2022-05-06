@@ -301,3 +301,85 @@ type Token @entity {
   pairBase: [Pair!]! @derivedFrom(field: "token0")
   pairQuote: [Pair!]! @derivedFrom(field: "token1")
 }
+
+type PairDayData @entity {
+  id: ID!
+  date: Int!
+  pairAddress: Bytes!
+  token0: Token!
+  token1: Token!
+
+  # reserves
+  reserve0: BigDecimal!
+  reserve1: BigDecimal!
+
+  # total supply for LP historical returns
+  totalSupply: BigDecimal!
+
+  # derived liquidity
+  reserveUSD: BigDecimal!
+
+  # volume stats
+  dailyVolumeToken0: BigDecimal!
+  dailyVolumeToken1: BigDecimal!
+  dailyVolumeUSD: BigDecimal!
+  dailyTxns: BigInt!
+}
+
+type TokenDayData @entity {
+  id: ID!
+  date: Int!
+  token: Token!
+
+  # volume stats
+  dailyVolumeToken: BigDecimal!
+  dailyVolumeETH: BigDecimal!
+  dailyVolumeUSD: BigDecimal!
+  dailyTxns: BigInt!
+
+  # liquidity stats
+  totalLiquidityToken: BigDecimal!
+  totalLiquidityETH: BigDecimal!
+  totalLiquidityUSD: BigDecimal!
+
+  # price stats
+  priceUSD: BigDecimal!
+}
+
+type Pair @entity {
+  # pair address
+  id: ID!
+
+  # mirrored from the smart contract
+  token0: Token!
+  token1: Token!
+  reserve0: BigDecimal!
+  reserve1: BigDecimal!
+  totalSupply: BigDecimal!
+
+  # derived liquidity
+  reserveETH: BigDecimal!
+  reserveUSD: BigDecimal!
+  trackedReserveETH: BigDecimal! # used for separating per pair reserves and global
+  # Price in terms of the asset pair
+  token0Price: BigDecimal!
+  token1Price: BigDecimal!
+
+  # lifetime volume stats
+  volumeToken0: BigDecimal!
+  volumeToken1: BigDecimal!
+  volumeUSD: BigDecimal!
+  untrackedVolumeUSD: BigDecimal!
+  txCount: BigInt!
+
+  # creation stats
+  createdAtTimestamp: BigInt!
+  createdAtBlockNumber: BigInt!
+
+  # derived fields
+  pairHourData: [PairHourData!]! @derivedFrom(field: "pair")
+  mints: [Mint!]! @derivedFrom(field: "pair")
+  burns: [Burn!]! @derivedFrom(field: "pair")
+  swaps: [Swap!]! @derivedFrom(field: "pair")
+}
+
