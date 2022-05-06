@@ -16,7 +16,8 @@ dataSources:
       language: wasm/assemblyscript
       file: ./src/mappings/factory.ts
       entities:
-        - Exchange
+        - Pair
+        - Token
       abis:
         - name: Factory
           file: ./abis/factory.json
@@ -27,39 +28,35 @@ dataSources:
         - name: ERC20NameBytes
           file: ./abis/ERC20NameBytes.json
       eventHandlers:
-        - event: NewExchange(indexed address,indexed address)
-          handler: handleNewExchange
+        - event: PairCreated(indexed address,indexed address,address,uint256)
+          handler: handleNewPair
 templates:
-  # These data sources templates exist to support the different flags that a token could specify- kind: ethereum/contract
   - kind: ethereum/contract
-    name: Exchange
+    name: Pair
     network: mainnet
     source:
-      abi: Exchange
+      abi: Pair
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.4
+      apiVersion: 0.0.3
       language: wasm/assemblyscript
-      file: ./src/mappings/exchange.ts
+      file: ./src/mappings/core.ts
       entities:
-        - Exchange
-        - Uniswap
-        - User
-        - UserExchangeData
-        - Transaction
-        - UniswapDayData
-        - UniswapHistoricalData
+        - Pair
+        - Token
       abis:
-        - name: Exchange
-          file: ./abis/exchange.json
+        - name: Pair
+          file: ./abis/pair.json
+        - name: Factory
+          file: ./abis/factory.json
       eventHandlers:
-        - event: TokenPurchase(indexed address,indexed uint256,indexed uint256)
-          handler: handleTokenPurchase
-        - event: EthPurchase(indexed address,indexed uint256,indexed uint256)
-          handler: handleEthPurchase
-        - event: AddLiquidity(indexed address,indexed uint256,indexed uint256)
-          handler: handleAddLiquidity
-        - event: RemoveLiquidity(indexed address,indexed uint256,indexed uint256)
-          handler: handleRemoveLiquidity
+        - event: Mint(indexed address,uint256,uint256)
+          handler: handleMint
+        - event: Burn(indexed address,uint256,uint256,indexed address)
+          handler: handleBurn
+        - event: Swap(indexed address,uint256,uint256,uint256,uint256,indexed address)
+          handler: handleSwap
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
+        - event: Sync(uint112,uint112)
+          handler: handleSync
