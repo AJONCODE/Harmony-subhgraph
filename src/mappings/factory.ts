@@ -1,16 +1,16 @@
 /* eslint-disable prefer-const */
 import { log } from '@graphprotocol/graph-ts'
+import { UniswapFactory, Pair, Token, Bundle } from '../types/schema'
 import { PairCreated } from '../types/Factory/Factory'
-import { Bundle, Pair, Token, UniswapFactory } from '../types/schema'
 import { Pair as PairTemplate } from '../types/templates'
 import {
   FACTORY_ADDRESS,
-  fetchTokenDecimals,
-  fetchTokenName,
-  fetchTokenSymbol,
-  fetchTokenTotalSupply,
   ZERO_BD,
   ZERO_BI,
+  fetchTokenSymbol,
+  fetchTokenName,
+  fetchTokenDecimals,
+  fetchTokenTotalSupply
 } from './helpers'
 
 export function handleNewPair(event: PairCreated): void {
@@ -45,7 +45,6 @@ export function handleNewPair(event: PairCreated): void {
     token0.name = fetchTokenName(event.params.token0)
     token0.totalSupply = fetchTokenTotalSupply(event.params.token0)
     let decimals = fetchTokenDecimals(event.params.token0)
-
     // bail if we couldn't figure out the decimals
     if (decimals === null) {
       log.debug('mybug the decimal on token 0 was null', [])
@@ -87,7 +86,6 @@ export function handleNewPair(event: PairCreated): void {
   let pair = new Pair(event.params.pair.toHexString()) as Pair
   pair.token0 = token0.id
   pair.token1 = token1.id
-  pair.liquidityProviderCount = ZERO_BI
   pair.createdAtTimestamp = event.block.timestamp
   pair.createdAtBlockNumber = event.block.number
   pair.txCount = ZERO_BI
